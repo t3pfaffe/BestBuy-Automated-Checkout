@@ -1,134 +1,215 @@
-from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.select import Select
 import time
-import urllib.request
-import os
 from configparser import ConfigParser
-import tkinter as tk
+
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
+
+# Constants
+BBY_URL = 'https://www.bestbuy.com/'
+
+RE_SIGN_IN_URL = 'https://www.bestbuy.com/identity/signin'
+SIGN_IN_URL = 'https://www.bestbuy.com/identity/global/signin'
+USR_NM_PATH = '/html/body/div[1]/div/section/main/div[1]/div/div/div/div/form/div[1]/div/input'
+PASS_PATH = '/html/body/div[1]/div/section/main/div[1]/div/div/div/div/form/div[2]/div/input'
+ID_PATH = '/html/body/div[1]/div/section/main/div[1]/div/div/div/div/form/div[1]/div/input'
+
+SRC_SKU_URL = 'https://www.bestbuy.com/site/searchpage.jsp?&st='
+IN_STK_TXT = 'to Cart'
+BTN_CLASS = 'add-to-cart-button'
+SKU_ATTR = 'data-sku-id'
+CART_URL = 'https://www.bestbuy.com/cart'
+
+class OutOfStockError(Exception):
+    def __init__(self, message):
+        self.message = message
+
+
+class NotOnPageError(Exception):
+    def __init__(self, message):
+        self.message = message
+
 
 class BBYbot():
-	def __init__(self,config):
+    def __init__(self, config):
 
-		self.driver = webdriver.Chrome('./chromedriver.exe')
-		self.url="https://www.bestbuy.com/"
-		self.username=config.get('BBY_ACCOUNT','USERNAME')
-		self.password=config.get('BBY_ACCOUNT','PASSWORD')
-		self.ID=config.get('BBY_ACCOUNT','ID')
-		self.card=config.get('CARD_INFO','CARD#')
-		self.cardsecurity=config.get('CARD_INFO','CARDSECURITY')
-		self.expm=config.get('CARD_INFO','EXPM')
-		self.expy=config.get('CARD_INFO','EXPY')
-	
+        self.driver = webdriver.Chrome()
+        self.url = BBY_URL
 
-		self.driver.get(self.url)
+        # Product details
+        self.SKUs = config.get('ITEM_INFO', 'SKUs').replace(' ', '').strip('\"').split(",")
 
-	def Login(self):
-		self.driver.find_element_by_class_name("BtnTxt").click()
-		time.sleep(.5)
-		self.driver.find_element_by_class_name("btn-secondary").click()
-		time.sleep(2)
-		username_input=self.driver.find_element_by_xpath('/html/body/div[1]/div/section/main/div[1]/div/div/div/div/form/div[1]/div/input')
-		username_input.send_keys(self.username)
-		password_input = self.driver.find_element_by_xpath('/html/body/div[1]/div/section/main/div[1]/div/div/div/div/form/div[2]/div/input')
-		password_input.send_keys(self.password)
-		password_input.submit()
-		time.sleep(3)
+        # Account details
+        self.username = config.get('BBY_ACCOUNT', 'USERNAME').strip('\"')
+        self.password = config.get('BBY_ACCOUNT', 'PASSWORD').strip('\"')
+        self.ID = config.get('BBY_ACCOUNT', 'ID').strip('\"')
 
-		try:
-			employee=self.driver.find_element_by_xpath('/html/body/div[1]/div/section/main/div[1]/div/div/div/div/form/div[1]/div/input')
-			employee.send_keys(self.ID)
-			employee.submit()
-		except:
-			return
+        # Card details
+        self.card = config.get('CARD_INFO', 'CARD#').strip('\"')
+        self.card_security = config.get('CARD_INFO', 'CARDSECURITY').strip('\"')
+        self.exp_m = config.get('CARD_INFO', 'EXPM').strip('\"')
+        self.exp_y = config.get('CARD_INFO', 'EXPY').strip('\"')
 
-	def searchtag(self, search_tag):
-		searchbar=self.driver.find_element_by_class_name('search-input')
-		searchbar.send_keys(search_tag)
-		searchbar.submit()
+        self.driver.get(self.url)
 
-	def in_stock(self):
-		time.sleep(5)
-		try:
-			
-			item = self.driver.find_element_by_class_name('btn-lg')
-			#webdriver.ActionChains(self.driver).click_and_hold(self.driver.find_elements_by_class_name('btn btn-primary btn-lg btn-block btn-leading-ficon add-to-cart-button')).perform()
-			#webdriver.ActionChains(self.driver).release().preform()
-			print("In stock!")
-			return True
-			
+    def login(self):
+        self.enforce_on_domain(RE_SIGN_IN_URL, SIGN_IN_URL)
+        timeout = 5
 
-		except:
-			print("Item is out of stock")
-			return False
+        username_input = WebDriverWait(self.driver, timeout).until(EC.presence_of_element_located((By.XPATH, USR_NM_PATH)))
+        username_input.send_keys(self.username)
+        time.sleep(0.25)
+        password_input = WebDriverWait(self.driver, timeout).until(EC.presence_of_element_located((By.XPATH, PASS_PATH)))
+        password_input.send_keys(self.password)
+        password_input.submit()
 
-	def add_toCart(self, incart):
-		try:
-			time.sleep(3)
-			item =self.driver.find_element_by_class_name('btn-lg')
-			item.click()
-			time.sleep(5)							
-			go_to_cart_button= self.driver.find_element_by_class_name("go-to-cart-button")
-			
-			go_to_cart_button.click()
-			incart=True
-			return incart
-			
-		except:
-			print("Couldnt add to cart trying again")
-			incart=False
-	def checkout(self):
-		time.sleep(3)
-		#selects shipping
-		self.driver.find_element_by_xpath('/html/body/div[1]/main/div/div[2]/div[1]/div/div/span/div/div[1]/div[1]/section[1]/div[4]/ul/li/section/div[2]/div[2]/form/div[2]/fieldset/div[2]/div[1]/div/div/div/input').click()
-		#presses checkout
-		self.driver.find_element_by_xpath('/html/body/div[1]/main/div/div[2]/div[1]/div/div/span/div/div[1]/div[1]/section[2]/div/div/div[3]/div/div[1]/button').click()
-		#continues to payment
-		time.sleep(2)
-		self.driver.find_element_by_xpath('/html/body/div[3]/div[2]/div/div/div[1]/div[1]/main/div[2]/div[2]/form/section/div/div[2]/div/div/button').click()
-		time.sleep(4)
-		paymentinfo=self.driver.find_element_by_xpath('/html/body/div[3]/div[2]/div/div/div[1]/div[1]/main/div[2]/div[3]/div/section/div[1]/div/section/div[1]/div/input')
-		paymentinfo.send_keys(self.card)
-		selectmm = Select(self.driver.find_element_by_name('expiration-month'))
-		selectmm.select_by_visible_text(self.expm)
-		selectyy = Select(self.driver.find_element_by_name('expiration-year'))
-		selectyy.select_by_visible_text(self.expy)
-		securitycode=self.driver.find_element_by_xpath('/html/body/div[3]/div[2]/div/div/div[1]/div[1]/main/div[2]/div[3]/div/section/div[1]/div/section/div[2]/div[2]/div/div[2]/div/input')
-		securitycode.send_keys(self.cardsecurity)
-		self.driver.find_element_by_xpath('/html/body/div[3]/div[2]/div/div/div[1]/div[1]/main/div[2]/div[3]/div/section/div[4]/button').click()
+        if(len(self.ID)>6):
+            try:
+                time.sleep(3)
+                employee = self.driver.find_element_by_xpath(ID_PATH)
+                employee.send_keys(self.ID)
+                employee.submit()
+            except:
+                return
 
-	def closeEmailprompt(self):
-		self.driver.find_element_by_class_name("c-modal-close-icon").click()
-	def close(self):
-		self.driver.close()
-def getinput():
-	sku_num=skunumber.get()
-	print(sku_num)
-	return sku_num
+    def enforce_on_domain(self, domain, else_redirect):
+        current_url = self.driver.current_url
+        if (domain in current_url):
+            return True
+        else:
+            self.driver.get(else_redirect)
+            return False
 
-print("Starting Bot")
-searchtag=''
-config_file= ConfigParser()
+    def search_sku(self, search_sku):
+        self.enforce_on_domain(BBY_URL, BBY_URL)
+        searchbar = self.driver.find_element_by_class_name('search-input')
+        searchbar.send_keys(search_sku)
+        searchbar.submit()
+
+    def go_to_sku(self, search_sku):
+        new_url = SRC_SKU_URL + search_sku
+        self.driver.get(new_url)
+
+    def in_stock(self, search_sku):
+        if (search_sku not in self.driver.current_url):
+            raise NotOnPageError("Error! Not on correct webpage for [" + search_sku + "].")
+        else:
+            timeout = 5
+            WebDriverWait(self.driver, timeout).until(EC.presence_of_element_located((By.CLASS_NAME, BTN_CLASS)))
+
+        all_checkouts = self.driver.find_elements_by_class_name(BTN_CLASS)
+        matching_checkouts = list(filter(lambda btn: btn.get_attribute(SKU_ATTR) == search_sku, all_checkouts))
+        in_stock_checkouts = list(filter(lambda btn: IN_STK_TXT in btn.text, matching_checkouts))
+
+        if (len(all_checkouts) == 0 or len(matching_checkouts) == 0):
+            raise NotOnPageError("ERROR! Could not find element corresponding to [" + search_sku + "] on this page.")
+        elif (len(in_stock_checkouts) == 0):
+            raise OutOfStockError("Item [" + search_sku + "] is out of stock")
+        else:
+            print("Item [" + search_sku + "] is in stock!!")
+            return in_stock_checkouts[0]
+
+    def add_to_cart(self, cart_btn):
+        cart_btn.click()
+        cart_btn.click()
+        # TODO check for success by change in number next to cart icon
+
+    def checkout(self):
+        timeout = 10
+        self.enforce_on_domain(CART_URL, CART_URL)
+
+        time.sleep(3)
+        checkout_btn = WebDriverWait(self.driver, timeout).until(EC.presence_of_element_located((By.CLASS_NAME, "btn-primary")))
+
+        # selects shipping
+        list(filter(lambda btn: "fulfillment-shipping" in btn.get_attribute("id"),
+               self.driver.find_elements_by_name("availability-selection")))[0].click()
+
+        # presses checkout
+        checkout_btn.click()
+
+        # Check for re sign-in
+        if(RE_SIGN_IN_URL in self.driver.current_url):
+            self.login()
+
+        securitycode = WebDriverWait(self.driver, timeout).until(EC.presence_of_element_located((By.CLASS_NAME, "credit-card-form__cvv--warn")))
+        securitycode.send_keys(self.card_security)
+
+        self.driver.find_element_by_class_name("btn-lg").click()
+        time.sleep(300)
+
+    def close_email_prompt(self):
+        self.driver.find_element_by_class_name("c-modal-close-icon").click()
+
+    def close(self):
+        self.driver.close()
+
+
+print("Starting Bot...")
+config_file = ConfigParser()
 config_file.read("config.ini")
 bot = BBYbot(config_file)
-time.sleep(1)
-try:
-	bot.Login()
-except:
-	bot.closeEmailprompt()
-	time.sleep(3)
-	bot.Login()
-time.sleep(4)
-bot.searchtag("6429440")
-instock= bot.in_stock()
-incart=False
-if (instock==True):
-	while(incart != True):
-	 	incart=bot.add_toCart(incart)
-print("In cart!")
-time.sleep(1)
-#bot.checkout()
+print("Logging-in:")
+logged_in = False
+failCount = 0
+log_in_backoff = (25*60) # seconds
+while (not logged_in and failCount < 5):
+    start_time = time.time()
+    try:
+        bot.login()
+    except:
+        print("\tLog-in failed!")
+        failCount += 1
+        if (failCount < 5):
+            print('\t' + "Waiting " + str(log_in_backoff) + "s to try again.")
+            time.sleep(log_in_backoff)
+    else:
+        logged_in = True
+        print("\tLog-in succeeded!")
 
-print("compiled")
+time.sleep(1)
+print("Checking for in-stock SKUs:")
+
+in_stock_btn = None
+check_stock_period = (10 * 60)  # seconds
+while (in_stock_btn is None):
+    start_time = time.time()
+    for sku in bot.SKUs:
+        try:
+            bot.go_to_sku(sku)
+            in_stock_btn = bot.in_stock(sku)
+        except OutOfStockError as e:
+            print('\t' + str(e))
+        except NotOnPageError as e:
+            print('\t' + str(e))
+        except Exception as e:
+            print('\t' + str(e))
+        else:
+            print(in_stock_btn)
+            break
+    wait_time = check_stock_period - (time.time() - start_time)
+    if (not in_stock_btn and wait_time > 1.0):
+        print('\t' + "Waiting " + str(round(wait_time, 0)) + "s.")
+        time.sleep(wait_time)
+
+print("Adding in-stock item to cart:")
+in_cart = False
+while (not in_cart):
+    try:
+        in_cart = bot.add_to_cart(in_stock_btn)
+    except Exception as e:
+        print("\tAdd to cart failed! Error_Msg: " + str(e))
+        time.sleep(5)
+    else:
+        in_cart = True
+        print("\tAdd to cart succeeded!")
+
+time.sleep(1)
+print("Starting Checkout!")
+bot.checkout()
+print("\tCompleted Checkout!")
+
+
+print("\nCompleted Task!")
 bot.close()

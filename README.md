@@ -40,5 +40,7 @@ Getting Started:
 #### Link to latest version of ChromeWebdriver for windows:
 https://chromedriver.chromium.org/downloads
 
+
+---------------------------
 ##### Disclamer: 
 This code or my opinions on it are not endoresed or supported by the companies BestBuy & Walmart. It is possible that using this code you could be violating your terms of service with both afformentioned companies as well as any 3rd parties utilized in transaction such as Visa or Mastercard. In the event that you do violate such terms of service I am not liable for what was your decision to do so. 

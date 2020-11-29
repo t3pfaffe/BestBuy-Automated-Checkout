@@ -2,7 +2,7 @@
 A bot to constantly run and purchase item on BestBuy.com and Walmart.com. 
 May not reliably checkout due to variability and random pressence of Captcha.
 
-When it is actually working https://github.com/Strip3s/PhoenixBot/ is a more robust and effective bot. However it's BestBuy script does not work at all at the moment and I there are problems with its Walmart checkouts as well. However, the bot's Target and Gamestop bots have apparently been working as of late.
+When it is actually working https://github.com/Strip3s/PhoenixBot/ is a more robust and effective bot. However it's BestBuy script does not work at all at the moment and there are problems with its Walmart checkouts as well. However, the bot's Target and Gamestop bots have apparently been working as of late.
 
 
 Hello all,

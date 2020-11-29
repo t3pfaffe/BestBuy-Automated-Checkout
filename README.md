@@ -1,26 +1,23 @@
  BestBuy-Walmart-Automated-Checkout(ish)
 A bot to constantly run and purchase item on BestBuy.com and Walmart.com. 
-May not reliably checkout due to variability and random pressence of Captcha.
-
-When it is actually working https://github.com/Strip3s/PhoenixBot/ is a more robust and effective bot. However it's BestBuy script does not work at all at the moment and there are problems with its Walmart checkouts as well. However, the bot's Target and Gamestop bots have apparently been working as of late.
-
 
 Hello all,
 
-Currently the webdriver import will probably only work on Linux as it can easily access chromium from the environment variables. In windows I belive you usally have to download a seperate webdriver.exe and provide that files location in the ChromeDriver() declaration.
+This is a script heavily modified from @Konyanj0278's original work that should hopefully be able to grab items and checkout with the as quickly as possible when they come back into stock. It works by spawning a webriver instance of Chromium and refreshing the desired page(s) of the items you desire until it is in stock. It then adds said item to the cart and attempts a checkout. I am directly @'ing Walmart's and BestBuy's security teams for somehow not having ratelimiters or always on Captcha to prevent these scripts from working. 
 
-
-Requirements:\
- Selenium\
- Tkinter\
- Chrome webdriver
- 
 New Release v1.2\
-With this release the code does work to at least always add the item to your cart as of 11/29/20 and is able to purchase any item that registers as in stock on the BestBuy or Walmart website. It does require that you give the SKU number of the item you are trying to get. This is easily avaialbe on the products webpage for BestBuy. On Walmart it appears only visible in the products URL.
+With this release the code does work to at least always add the item to your cart as of 11/29/20 and is able to purchase any item that registers as in stock on the BestBuy or Walmart website. It does require that you give the SKU number of the item you are trying to get. This is easily avaialbe on the products webpage for BestBuy and On Walmart it appears only visible in the products URL. It may not reliably checkout due to variability and random pressence of Captcha.
 
-It works by spawning a webriver instance of Chromium and refreshing the desired page(s) of the items you desire until it is in stock. Then it adds said item to the cart and attempts a checkout. I am directly @'ing Walmart's and BestBuy's security teams for somehow not having ratelimiters or always on Captcha to prevent these scripts from working. 
+Code Dependanceis:
+ * Selenium
+ * Tkinter
+ * Chrome webdriver
+ 
+Other Requirements/Notes:
+- In BestBuy it assumes you have an account (probably best to not use an account you use normally) that has a saved address and card. The same is true with Walmart. In either cases the bot may get messed up at checkout in the event that a captcha is called for by the website. There is really nothing that can be done to fix this but hoping you solve the captcha in time.
+- Currently the webdriver import will probably only work on Linux as it can easily access chromium from the environment variables. In windows I belive you usally have to download a seperate webdriver.exe and provide that files location in the ChromeDriver() declaration.
+- When it is actually working https://github.com/Strip3s/PhoenixBot/ is a more robust and effective bot. However it's BestBuy script does not work at all at the moment and there are problems with its Walmart checkouts as well. However, the bot's Target and Gamestop bots have apparently been working as of late.
 
-In BestBuy it assumes you have an account (probably best to not use an account you use normally) that has a saved address and card. The same is true with Walmart. In either cases the bot may get messed up at checkout in the event that a captcha is called for by the website. There is really nothing that can be done to fix this but hoping you solve the captcha in time. 
   
 How to use:
 

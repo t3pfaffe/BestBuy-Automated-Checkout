@@ -6,7 +6,7 @@ A bot to constantly run and purchase item on BestBuy.com and Walmart.com.
 
 This is a script heavily modified from [@Konyanj0278](https://github.com/Konyanj0278/BestBuy-Automated-Checkout)'s original work that should hopefully be able to grab items and checkout with the as quickly as possible when they come back into stock. It works by spawning a webriver instance of Chromium and refreshing the desired page(s) of the items you desire until it is in stock. It then adds said item to the cart and attempts a checkout. I am directly @'ing Walmart's and BestBuy's security teams for somehow not having ratelimiters or always on Captcha to prevent these scripts from working.
 
-When it is actually working https://github.com/Strip3s/PhoenixBot/ is a more robust and effective bot. However it's BestBuy script does not work at all at the moment and there are problems with its Walmart checkouts as well. However, the bot's Target and Gamestop bots have apparently been working as of late. If your looking to commit code anywhere it would probably be best to help out with anything over there rather than with this side project.
+When it is actually working https://github.com/Strip3s/PhoenixBot/ is a more robust and effective bot. However it's BestBuy script does not work at all at the moment and there are problems with its Walmart checkouts as well. The bot's Target and Gamestop bots have apparently been working as of late so check those out. If your looking to commit code anywhere it would probably be best to help out with anything over there rather than with this side project.
 
 New Release v1.2:
 ----------------

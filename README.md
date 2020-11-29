@@ -1,6 +1,6 @@
  BestBuy-Walmart-Automated-Checkout(ish):
  =======================================
-A bot to constantly run and purchase item on BestBuy.com and Walmart.com. 
+A bot to constantly run and purchase items on BestBuy.com and Walmart.com. 
 
 ### Hello all,
 

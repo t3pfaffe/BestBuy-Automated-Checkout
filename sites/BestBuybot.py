@@ -1,11 +1,11 @@
 import time
 from configparser import ConfigParser
 from datetime import datetime
-
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+from genericbot import NotOnPageError, OutOfStockError, print_timestamped
 
 # Constants
 BBY_URL = 'https://www.bestbuy.com/'
@@ -21,15 +21,6 @@ IN_STK_TXT = 'to Cart'
 BTN_CLASS = 'add-to-cart-button'
 SKU_ATTR = 'data-sku-id'
 CART_URL = 'https://www.bestbuy.com/cart'
-
-class OutOfStockError(Exception):
-    def __init__(self, message):
-        self.message = message
-
-
-class NotOnPageError(Exception):
-    def __init__(self, message):
-        self.message = message
 
 
 class BBYbot():
@@ -58,14 +49,16 @@ class BBYbot():
         self.enforce_on_domain(RE_SIGN_IN_URL, SIGN_IN_URL)
         timeout = 5
 
-        username_input = WebDriverWait(self.driver, timeout).until(EC.presence_of_element_located((By.XPATH, USR_NM_PATH)))
+        username_input = WebDriverWait(self.driver, timeout).until(
+            EC.presence_of_element_located((By.XPATH, USR_NM_PATH)))
         username_input.send_keys(self.username)
         time.sleep(0.25)
-        password_input = WebDriverWait(self.driver, timeout).until(EC.presence_of_element_located((By.XPATH, PASS_PATH)))
+        password_input = WebDriverWait(self.driver, timeout).until(
+            EC.presence_of_element_located((By.XPATH, PASS_PATH)))
         password_input.send_keys(self.password)
         password_input.submit()
 
-        if(len(self.ID)>6):
+        if (len(self.ID) > 6):
             try:
                 time.sleep(3)
                 employee = self.driver.find_element_by_xpath(ID_PATH)
@@ -121,20 +114,22 @@ class BBYbot():
         self.enforce_on_domain(CART_URL, CART_URL)
 
         time.sleep(3)
-        checkout_btn = WebDriverWait(self.driver, timeout).until(EC.presence_of_element_located((By.CLASS_NAME, "btn-primary")))
+        checkout_btn = WebDriverWait(self.driver, timeout).until(
+            EC.presence_of_element_located((By.CLASS_NAME, "btn-primary")))
 
         # selects shipping
         list(filter(lambda btn: "fulfillment-shipping" in btn.get_attribute("id"),
-               self.driver.find_elements_by_name("availability-selection")))[0].click()
+                    self.driver.find_elements_by_name("availability-selection")))[0].click()
 
         # presses checkout
         checkout_btn.click()
 
         # Check for re sign-in
-        if(RE_SIGN_IN_URL in self.driver.current_url):
+        if (RE_SIGN_IN_URL in self.driver.current_url):
             self.login()
 
-        securitycode = WebDriverWait(self.driver, timeout).until(EC.presence_of_element_located((By.CLASS_NAME, "credit-card-form__cvv--warn")))
+        securitycode = WebDriverWait(self.driver, timeout).until(
+            EC.presence_of_element_located((By.CLASS_NAME, "credit-card-form__cvv--warn")))
         securitycode.send_keys(self.card_security)
 
         self.driver.find_element_by_class_name("btn-lg").click()
@@ -147,22 +142,20 @@ class BBYbot():
         self.driver.close()
 
 
-def print_timestamped(msg=""):
-    print("[" + str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + "] " + str(msg))
 
 print_timestamped("Starting Bot...")
 config_file = ConfigParser()
-config_file.read("configs/bby.config.ini")
+config_file.read("site.configs/bby.config.ini")
 bot = BBYbot(config_file)
 print_timestamped("Logging-in:")
 logged_in = False
 login_fail_count = 0
-log_in_backoff = (60) # seconds
+log_in_backoff = (60)  # seconds
 while (not logged_in and login_fail_count < 5):
     start_time = time.time()
     try:
         bot.login()
-    except:
+    except Exception as e:
         print_timestamped("\tLog-in failed!")
         login_fail_count += 1
         if (login_fail_count < 5):
@@ -177,7 +170,7 @@ time.sleep(3)
 
 in_stock_btn = None
 stock_fail_count = 1
-check_stock_period = (30)  # seconds
+check_stock_period = (10 * 60)  # seconds
 while (in_stock_btn is None):
     start_time = time.time()
     print_timestamped("\t[" + str(stock_fail_count) + "] Checking For Restock")
@@ -186,7 +179,7 @@ while (in_stock_btn is None):
             bot.go_to_sku(sku)
             in_stock_btn = bot.in_stock(sku)
         except OutOfStockError as e:
-            #print('\t' + str(e))
+            # print('\t' + str(e))
             pass
         except NotOnPageError as e:
             print_timestamped('\t' + str(e))
@@ -217,4 +210,4 @@ time.sleep(1)
 print_timestamped("Starting Checkout!")
 bot.checkout()
 print_timestamped("\tCompleted Checkout!")
-#bot.close()
+# bot.close()

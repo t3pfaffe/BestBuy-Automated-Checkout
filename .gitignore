@@ -1,7 +1,10 @@
-sites/scratchpad-testing.py
+## Specifrc to this Prject
+# Trying not to push your account password and credit card to GH...
 *.config.ini
+scratchpad-testing.py
 
 
+## Recomended Defaults
 # Pycharm git-ignores:
 .idea/
 

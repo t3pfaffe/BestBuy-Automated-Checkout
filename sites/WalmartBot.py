@@ -1,14 +1,15 @@
-import time
 from configparser import ConfigParser
-from datetime import datetime
+import time
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
+from genericbot import NotOnPageError, OutOfStockError, print_timestamped, CheckOutBot
+
 # Constants
-BBY_URL = 'https://www.walmart.com/'
+WM_URL = 'https://www.walmart.com/'
 
 RE_SIGN_IN_URL = 'https://www.walmart.com/account/login'
 SIGN_IN_URL = 'https://www.walmart.com/account/login?tid=0&returnUrl=%2F'
@@ -19,37 +20,10 @@ BTN_CLASS = 'add-to-cart-button'
 SKU_ATTR = 'data-sku-id'
 CART_URL = 'https://www.bestbuy.com/cart'
 
-class OutOfStockError(Exception):
-    def __init__(self, message):
-        self.message = message
 
-
-class NotOnPageError(Exception):
-    def __init__(self, message):
-        self.message = message
-
-
-class BBYbot():
-    def __init__(self, config):
-
-        self.driver = webdriver.Chrome()
-        self.url = BBY_URL
-
-        # Product details
-        self.SKUs = config.get('ITEM_INFO', 'SKUs').replace(' ', '').strip('\"').split(",")
-
-        # Account details
-        self.username = config.get('WM_ACCOUNT', 'USERNAME').strip('\"')
-        self.password = config.get('WM_ACCOUNT', 'PASSWORD').strip('\"')
-        self.ID = config.get('WM_ACCOUNT', 'ID').strip('\"')
-
-        # Card details
-        self.card = config.get('CARD_INFO', 'CARD#').strip('\"')
-        self.card_security = config.get('CARD_INFO', 'CARDSECURITY').strip('\"')
-        self.exp_m = config.get('CARD_INFO', 'EXPM').strip('\"')
-        self.exp_y = config.get('CARD_INFO', 'EXPY').strip('\"')
-
-        self.driver.get(self.url)
+class WMbot(CheckOutBot):
+    def __init__(self, config_file, base_url=WM_URL, query_base_url=SRC_SKU_URL, cart_base_url=CART_URL):
+        CheckOutBot.__init__(self, config_file, base_url, query_base_url, cart_base_url)
 
     def login(self):
         self.enforce_on_domain(RE_SIGN_IN_URL, SIGN_IN_URL)
@@ -61,24 +35,6 @@ class BBYbot():
         password_input = WebDriverWait(self.driver, timeout).until(EC.presence_of_element_located((By.ID, 'password')))
         password_input.send_keys(self.password)
         password_input.submit()
-
-    def enforce_on_domain(self, domain, else_redirect):
-        current_url = self.driver.current_url
-        if (domain in current_url):
-            return True
-        else:
-            self.driver.get(else_redirect)
-            return False
-
-    def search_sku(self, search_sku):
-        self.enforce_on_domain(BBY_URL, BBY_URL)
-        searchbar = self.driver.find_element_by_class_name('search-input')
-        searchbar.send_keys(search_sku)
-        searchbar.submit()
-
-    def go_to_sku(self, search_sku):
-        new_url = SRC_SKU_URL + search_sku
-        self.driver.get(new_url)
 
     def in_stock(self, search_sku):
         if (search_sku not in self.driver.current_url):
@@ -108,11 +64,13 @@ class BBYbot():
         self.enforce_on_domain(CART_URL, CART_URL)
 
         time.sleep(5)
-        btn = WebDriverWait(self.driver, timeout).until(EC.presence_of_element_located((By.CLASS_NAME, "button--primary")))
+        btn = WebDriverWait(self.driver, timeout).until(
+            EC.presence_of_element_located((By.CLASS_NAME, "button--primary")))
         btn.click()
 
         time.sleep(3)
-        btn2 = WebDriverWait(self.driver, timeout).until(EC.presence_of_element_located((By.CLASS_NAME, "button--primary")))
+        btn2 = WebDriverWait(self.driver, timeout).until(
+            EC.presence_of_element_located((By.CLASS_NAME, "button--primary")))
         btn2.click()
         print_timestamped("Checkout complete!")
         time.sleep(300)
@@ -127,18 +85,14 @@ class BBYbot():
         self.driver.close()
 
 
-def print_timestamped(msg=""):
-    print("[" + str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + "] " + str(msg))
+bot = WMbot("site.configs/wm.config.ini")
 
-print_timestamped("Starting Bot...")
-config_file = ConfigParser()
-config_file.read("configs/wm.config.ini")
-bot = BBYbot(config_file)
+
 print_timestamped("Logging-in:")
 logged_in = False
 login_fail_count = 0
-log_in_backoff = (60) # seconds
-while (not logged_in and login_fail_count < 5):
+log_in_backoff = (60)  # seconds
+while (not logged_in and login_fail_count < 4):
     start_time = time.time()
     try:
         bot.login()
@@ -157,18 +111,18 @@ time.sleep(3)
 
 in_stock = False
 stock_fail_count = 1
-check_stock_period = (15)  # seconds
+check_stock_period = (bot.poll_rate)  # seconds
 
 while (in_stock is False):
     start_time = time.time()
     print_timestamped("\t[" + str(stock_fail_count) + "] Checking For Restock")
     for sku in bot.SKUs:
         try:
-            bot.driver.get(SRC_SKU_URL + sku)
+            bot.search_sku(sku)
             time.sleep(2)
             in_stock = bot.is_in_stock(bot.driver.find_element_by_xpath("//body").get_attribute('outerHTML'))
         except OutOfStockError as e:
-            #print('\t' + str(e))
+            # print('\t' + str(e))
             pass
         except NotOnPageError as e:
             print_timestamped('\t' + str(e))
